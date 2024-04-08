@@ -155,9 +155,10 @@ import (
 	appparams "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/params"
 
 	// unnamed import of statik for swagger UI support
+	v3_0_2 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v3_0_2"
+	v42 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_1_2"
+	v45 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_1_5"
 	"github.com/rakyll/statik/fs"
-
-	v4 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_1_4"
 
 	// unnamed import of statik for swagger UI support
 	_ "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/client/docs/statik"
@@ -1144,8 +1145,29 @@ func RegisterSwaggerAPI(rtr *mux.Router) {
 // Setup Upgrade Handler
 func (app *MigalooApp) setupUpgradeHandlers() {
 	app.UpgradeKeeper.SetUpgradeHandler(
-		v4.UpgradeName,
-		v4.CreateUpgradeHandler(
+		v3_0_2.UpgradeName,
+		v3_0_2.CreateUpgradeHandler(app.mm, app.configurator),
+	)
+
+	// !! ATTENTION !!
+	// v4 upgrade handler
+	// !! WHEN UPGRADING TO SDK v0.47 MAKE SURE TO INCLUDE THIS
+	// source: https://github.com/cosmos/cosmos-sdk/blob/release/v0.47.x/UPGRADING.md#xconsensus
+	app.UpgradeKeeper.SetUpgradeHandler(
+		v42.UpgradeName,
+		v42.CreateUpgradeHandler(
+			app.mm,
+			app.configurator,
+			app.IBCKeeper.ClientKeeper,
+			app.ParamsKeeper,
+			app.ConsensusParamsKeeper,
+			app.ICAControllerKeeper,
+			app.AccountKeeper,
+		),
+	)
+	app.UpgradeKeeper.SetUpgradeHandler(
+		v45.UpgradeName,
+		v45.CreateUpgradeHandler(
 			app.mm,
 			app.configurator,
 		),
@@ -1163,10 +1185,7 @@ func (app *MigalooApp) setupUpgradeHandlers() {
 		return
 	}
 
-	if upgradeInfo.Name == v4.UpgradeName {
-		// !! ATTENTION !!
-		// !! WHEN UPGRADING TO SDK v0.47 MAKE SURE TO INCLUDE THIS
-		// source: https://github.com/cosmos/cosmos-sdk/blob/release/v0.47.x/UPGRADING.md
+	if upgradeInfo.Name == v45.UpgradeName {
 		storeUpgrades := &storetypes.StoreUpgrades{
 			Added:   []string{},
 			Deleted: []string{},
