@@ -115,8 +115,8 @@ import (
 	icqtypes "github.com/cosmos/ibc-apps/modules/async-icq/v7/types"
 	ibcmock "github.com/cosmos/ibc-go/v7/testing/mock"
 
-	terracustombank "github.com/terra-money/core/v2/custom/bank"
-	custombankkeeper "github.com/terra-money/core/v2/custom/bank/keeper"
+	terracustombank "github.com/terra-money/core/v2/x/bank"
+	custombankkeeper "github.com/terra-money/core/v2/x/bank/keeper"
 
 	ibchooks "github.com/cosmos/ibc-apps/modules/ibc-hooks/v7"
 	ibchookskeeper "github.com/cosmos/ibc-apps/modules/ibc-hooks/v7/keeper"
@@ -127,8 +127,8 @@ import (
 	alliancemodulekeeper "github.com/terra-money/alliance/x/alliance/keeper"
 	alliancemoduletypes "github.com/terra-money/alliance/x/alliance/types"
 
+	customquerier "github.com/terra-money/core/v2/app/custom_queriers"
 	"github.com/terra-money/core/v2/x/tokenfactory"
-	bindings "github.com/terra-money/core/v2/x/tokenfactory/bindings"
 	tokenfactorykeeper "github.com/terra-money/core/v2/x/tokenfactory/keeper"
 	tokenfactorytypes "github.com/terra-money/core/v2/x/tokenfactory/types"
 
@@ -159,6 +159,7 @@ import (
 	v42 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_1_2"
 	v45 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_1_5"
 	v46 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_1_6"
+	v420 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_2_0"
 	"github.com/rakyll/statik/fs"
 
 	// unnamed import of statik for swagger UI support
@@ -472,7 +473,7 @@ func NewMigalooApp(
 		keys[tokenfactorytypes.StoreKey],
 		maccPerms,
 		app.AccountKeeper,
-		app.BankKeeper,
+		&app.BankKeeper,
 		app.DistrKeeper,
 		appCodec,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
@@ -600,7 +601,9 @@ func NewMigalooApp(
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		app.AccountKeeper, scopedICAHostKeeper, app.MsgServiceRouter(),
 	)
+
 	icaModule := ica.NewAppModule(nil, &app.ICAHostKeeper)
+	app.ICAHostKeeper.WithQueryRouter(app.GRPCQueryRouter())
 
 	app.ICAControllerKeeper = icacontrollerkeeper.NewKeeper(
 		appCodec,
@@ -631,7 +634,7 @@ func NewMigalooApp(
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
 	availableCapabilities := "iterator,staking,stargate,cosmwasm_1_1,cosmwasm_1_2,cosmwasm_1_3,cosmwasm_1_4,token_factory"
-	wasmOpts = append(bindings.RegisterCustomPlugins(&app.BankKeeper.BaseKeeper, &app.TokenFactoryKeeper), wasmOpts...)
+	wasmOpts = append(customquerier.RegisterCustomPlugins(&app.BankKeeper.BaseKeeper, &app.TokenFactoryKeeper, &app.AllianceKeeper), wasmOpts...)
 
 	app.WasmKeeper = wasmkeeper.NewKeeper(
 		appCodec,
@@ -1182,6 +1185,14 @@ func (app *MigalooApp) setupUpgradeHandlers() {
 		),
 	)
 
+	app.UpgradeKeeper.SetUpgradeHandler(
+		v420.UpgradeName,
+		v420.CreateUpgradeHandler(
+			app.mm,
+			app.configurator,
+		),
+	)
+
 	// When a planned update height is reached, the old binary will panic
 	// writing on disk the height and name of the update that triggered it
 	// This will read that value, and execute the preparations for the upgrade.
@@ -1194,7 +1205,7 @@ func (app *MigalooApp) setupUpgradeHandlers() {
 		return
 	}
 
-	if upgradeInfo.Name == v46.UpgradeName {
+	if upgradeInfo.Name == v420.UpgradeName {
 		storeUpgrades := &storetypes.StoreUpgrades{
 			Added:   []string{},
 			Deleted: []string{},
