@@ -160,7 +160,8 @@ import (
 	v45 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_1_5"
 	v46 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_1_6"
 	v420 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_2_0"
-	v421 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_2_1"
+	v422 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_2_2"
+	v423 "github.com/White-Whale-Defi-Platform/migaloo-chain/v4/app/upgrades/v4_2_3"
 	"github.com/rakyll/statik/fs"
 
 	// unnamed import of statik for swagger UI support
@@ -1194,8 +1195,16 @@ func (app *MigalooApp) setupUpgradeHandlers() {
 		),
 	)
 	app.UpgradeKeeper.SetUpgradeHandler(
-		v421.UpgradeName,
-		v421.CreateUpgradeHandler(
+		v422.UpgradeName,
+		v422.CreateUpgradeHandler(
+			app.mm,
+			app.StakingKeeper,
+			app.configurator,
+		),
+	)
+	app.UpgradeKeeper.SetUpgradeHandler(
+		v423.UpgradeName,
+		v423.CreateUpgradeHandler(
 			app.mm,
 			app.StakingKeeper,
 			app.configurator,
@@ -1214,7 +1223,7 @@ func (app *MigalooApp) setupUpgradeHandlers() {
 		return
 	}
 
-	if upgradeInfo.Name == v421.UpgradeName {
+	if upgradeInfo.Name == v423.UpgradeName {
 		storeUpgrades := &storetypes.StoreUpgrades{
 			Added:   []string{},
 			Deleted: []string{},
@@ -1262,7 +1271,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(tokenfactorytypes.ModuleName).WithKeyTable(tokenfactorytypes.ParamKeyTable())
 	paramsKeeper.Subspace(icacontrollertypes.SubModuleName)
 	paramsKeeper.Subspace(icqtypes.ModuleName).WithKeyTable(icqtypes.ParamKeyTable())
-	paramsKeeper.Subspace(wasmtypes.ModuleName).WithKeyTable(wasmtypes.ParamKeyTable())
+	paramsKeeper.Subspace(wasmtypes.ModuleName)
 	paramsKeeper.Subspace(packetforwardtypes.ModuleName).WithKeyTable(packetforwardtypes.ParamKeyTable())
 	paramsKeeper.Subspace(alliancemoduletypes.ModuleName).WithKeyTable(alliancemoduletypes.ParamKeyTable())
 	paramsKeeper.Subspace(feeburnmoduletypes.ModuleName)
